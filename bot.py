@@ -7,6 +7,7 @@ from util import*
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['mode'] = 'main'
     text = load_message('main')
     await send_image(update, context, 'main')
     await send_text(update, context, text)
@@ -23,7 +24,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    await send_text(update, context, 'Начнем сначала.')
+    await send_text(update, context, 'Без проблем! Начнем сначала.')
     await start(update, context)
 
 
@@ -54,9 +55,42 @@ async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = await send_text(update, context, 'Думаю над ответом...')
     answer = await chat_gpt.add_message(request)
     await message.delete()
-    await message.send_text_buttons(update, context,
+    await send_text_buttons(update, context,
                                     answer,
                                     buttons={'stop': 'Завершить'})
+
+
+async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['mode'] = 'talk'
+    text = load_message('talk')
+    await send_image(update, context, 'talk')
+    await send_text_buttons(update, context, text, buttons={
+        'talk_cobain': 'Курт Кобейн',
+        'talk_hawking': 'Стивен Хокинг',
+        'talk_nietzsche': 'Фридрих Ницше',
+        'talk_queen': 'Королева Елизавета',
+        'talk_tolkien': 'Джон Толкиен'
+    })
+
+
+async def talk_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    data = update.callback_query.data
+    chat_gpt.set_prompt(load_prompt(data))
+    greet = await chat_gpt.add_message('Поздоровайся со мной')
+    await send_image(update, context, data)
+    await send_text(update, context, greet)
+
+
+
+async def talk_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    request = update.message.text
+    message = await send_text(update, context, 'Уже пишу тебе ответ. А ты пока устраивайся поудобнее.')
+    answer = await chat_gpt.add_message(request)
+    await message.delete()
+    await send_text_buttons(update, context,
+                            answer,
+                            buttons={'stop': 'Завершить'})
 
 
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -68,17 +102,21 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start(update, context)
     elif context.user_data['mode'] == 'gpt':
         await gpt_dialog(update, context)
+    elif context.user_data['mode'] == 'talk':
+        await talk_dialog(update, context)
 
 
-chat_gpt = ChatGptService('ChatGPT TOKEN')
+chat_gpt = ChatGptService(ChatGPT_TOKEN)
 app = Application.builder().token(token).build()
 
 
-app.add_handler(MessageHandler(filters.TEXT & filters.COMMAND, text_handler))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+
+
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('random', random))
 app.add_handler(CommandHandler('gpt', gpt))
-#app.add_handler(CommandHandler('talk', talk))
+app.add_handler(CommandHandler('talk', talk))
 #app.add_handler(CommandHandler('quiz', quiz))
 #app.add_handler(CommandHandler('translator', translator))
 #app.add_handler(CommandHandler('resume', resume))
@@ -86,6 +124,7 @@ app.add_handler(CommandHandler('gpt', gpt))
 
 # app.add_handler(CallbackQueryHandler(app_button, pattern='^app_.*'))
 app.add_handler(CallbackQueryHandler(random_buttons, pattern='random_more'))
+app.add_handler(CallbackQueryHandler(talk_buttons, pattern='^talk_.*'))
 app.add_handler(CallbackQueryHandler(stop, pattern='stop'))
 app.add_handler(CallbackQueryHandler(default_callback_handler))
 app.run_polling()
