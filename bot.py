@@ -59,6 +59,10 @@ async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     buttons={'stop': 'Завершить'})
 
 
+async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass
+
+
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data['mode'] in ('main', 'random'):
         await start(update, context)
