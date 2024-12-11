@@ -1,0 +1,1 @@
+A project for TG, a bot that will help you fulfill your dream of talking with a famous person. It can also help with translation: just click on the language button and then enter the text. In addition, you can play a quiz with the bot or ask it to create a resume.
